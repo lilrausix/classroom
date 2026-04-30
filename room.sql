@@ -29,6 +29,16 @@ CREATE TABLE assignments (
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
 );
 
+CREATE TABLE class_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    class_id INT NOT NULL,
+    pupil_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_member (class_id, pupil_id),
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
+    FOREIGN KEY (pupil_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE submissions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     assignment_id INT,
@@ -50,6 +60,6 @@ CREATE TABLE action_history (
 );
 
 INSERT INTO users (name, email, password, role) VALUES 
-('Admin Lietotājs', 'admin@edu.lv', 'parole123', 'admin'),
-('Skolotājs Kārlis', 'karlis@edu.lv', 'parole123', 'teacher'),
-('Skolēns Jānis', 'janis@edu.lv', 'parole123', 'pupil');
+('Admin Lietotājs', 'admin@edu.lv', '$2y$10$1k2aM9OsXIzOpzMLjhRDw.EpAQWXYHW8HZiWRnGNveEEKjw0otcpq', 'admin'),
+('Skolotājs Kārlis', 'karlis@edu.lv', '$2y$10$1k2aM9OsXIzOpzMLjhRDw.EpAQWXYHW8HZiWRnGNveEEKjw0otcpq', 'teacher'),
+('Skolēns Jānis', 'janis@edu.lv', '$2y$10$1k2aM9OsXIzOpzMLjhRDw.EpAQWXYHW8HZiWRnGNveEEKjw0otcpq', 'pupil');

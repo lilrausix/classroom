@@ -4,14 +4,24 @@ require '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
+    $password = $_POST['password'];
+
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
-    if ($user) { // Šeit reālā projektā lietotu password_verify
+    if ($user && password_verify($password, $user['password'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $user['role'];
-        header("Location: dashboard.php");
+        $_SESSION['name'] = $user['name'];
+
+        // Pārvirzām atkarībā no lomas
+        if($user['role'] == 'admin') header("Location: admin.php");
+        elseif($user['role'] == 'teacher') header("Location: teacher.php");
+        else header("Location: pupil.php");
+        exit();
+    } else {
+        $error = "Nepareizs e-pasts vai parole!";
     }
 }
 ?>
@@ -25,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body class="bg-[#0f172a] text-white flex items-center justify-center h-screen">
     <div class="bg-[#1e293b] p-8 rounded-2xl shadow-xl w-96 border border-slate-700">
         <h2 class="text-3xl font-bold mb-6 text-center text-purple-400">EduPulse</h2>
+        <a href="signup.php" class="text-purple-400 font-bold">Izveidot jaunu profilu</a>
         <form method="POST">
             <input type="email" name="email" placeholder="E-pasts" class="w-full p-3 mb-4 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-500">
             <input type="password" name="password" placeholder="Parole" class="w-full p-3 mb-6 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-500">
