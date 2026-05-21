@@ -33,6 +33,7 @@ $submissions = $stmt->fetchAll();
 <!DOCTYPE html>
 <html lang="lv">
 <head>
+    <link rel="stylesheet" href="theme-toggle.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <title><?= htmlspecialchars($class['name']) ?> | EduPulse</title>
 </head>
@@ -44,9 +45,12 @@ $submissions = $stmt->fetchAll();
                 <h1 class="text-4xl font-black mt-2"><?= htmlspecialchars($class['name']) ?></h1>
                 <p class="text-slate-500 font-mono">Pievienošanās kods: <?= $class['join_code'] ?></p>
             </div>
-            <button onclick="document.getElementById('task-modal').classList.toggle('hidden')" class="bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-2xl font-bold transition shadow-lg shadow-purple-500/20">
-                + Jauns uzdevums
-            </button>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button id="theme-toggle" type="button" class="theme-toggle-btn">🌙 Tumšā</button>
+                <button onclick="document.getElementById('task-modal').classList.toggle('hidden')" class="bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-2xl font-bold transition shadow-lg shadow-purple-500/20">
+                    + Jauns uzdevums
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -57,7 +61,7 @@ $submissions = $stmt->fetchAll();
                     <h3 class="text-xl font-bold text-purple-300"><?= htmlspecialchars($a['title']) ?></h3>
                     <p class="text-slate-400 mt-2 mb-4"><?= nl2br(htmlspecialchars($a['description'])) ?></p>
                     <?php if($a['file_path']): ?>
-                        <a href="../uploads/assignments/<?= $a['file_path'] ?>" class="inline-flex items-center text-sm text-indigo-400 bg-indigo-400/10 px-3 py-1 rounded-full border border-indigo-400/20">
+                        <a href="../uploads/assignments/<?= htmlspecialchars($a['file_path']) ?>" class="inline-flex items-center text-sm text-indigo-400 bg-indigo-400/10 px-3 py-1 rounded-full border border-indigo-400/20">
                             📎 Pievienotais fails
                         </a>
                     <?php endif; ?>
@@ -78,8 +82,9 @@ $submissions = $stmt->fetchAll();
                         <p class="text-sm text-slate-400 mb-3 italic">"<?= htmlspecialchars($s['comment']) ?>"</p>
                         
                         <div class="flex gap-2 items-center">
-                            <a href="../uploads/submissions/<?= $s['file_path'] ?>" class="text-xs bg-slate-700 p-2 rounded hover:bg-slate-600 transition">Lejuplādēt failu</a>
+                            <a href="../uploads/submissions/<?= htmlspecialchars($s['file_path']) ?>" class="text-xs bg-slate-700 p-2 rounded hover:bg-slate-600 transition">Lejuplādēt failu</a>
                             <form action="grade.php" method="POST" class="flex gap-1">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                                 <input type="hidden" name="sub_id" value="<?= $s['id'] ?>">
                                 <input type="number" name="grade" placeholder="1-10" class="w-12 bg-slate-900 text-xs p-2 rounded border border-slate-600 text-center">
                                 <button class="bg-green-600 text-[10px] px-2 rounded font-bold uppercase">OK</button>
@@ -98,6 +103,7 @@ $submissions = $stmt->fetchAll();
             <div class="bg-slate-900 border border-slate-700 p-10 rounded-[40px] w-full max-w-lg">
                 <h2 class="text-3xl font-black mb-6">Izveidot uzdevumu</h2>
                 <form action="create_assignment.php" method="POST" enctype="multipart/form-data" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                     <input type="hidden" name="class_id" value="<?= $class_id ?>">
                     <input type="text" name="title" placeholder="Uzdevuma nosaukums" required class="w-full bg-slate-800 border border-slate-700 p-4 rounded-2xl focus:outline-none focus:border-purple-500">
                     <textarea name="description" placeholder="Apraksts..." rows="4" class="w-full bg-slate-800 border border-slate-700 p-4 rounded-2xl focus:outline-none focus:border-purple-500"></textarea>
@@ -110,5 +116,6 @@ $submissions = $stmt->fetchAll();
             </div>
         </div>
     </main>
+    <script src="theme-toggle.js"></script>
 </body>
 </html>

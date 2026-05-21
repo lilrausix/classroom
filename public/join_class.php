@@ -4,6 +4,7 @@ require '../config/db.php';
 checkRole('pupil');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['code'])) {
+    requireCsrf();
     $code = strtoupper(trim($_POST['code']));
 
     $stmt = $pdo->prepare("SELECT id FROM classes WHERE join_code = ?");

@@ -1,5 +1,4 @@
 <?php
-session_start();
 require '../config/session_check.php';
 require '../config/db.php';
 checkRole('pupil');
@@ -9,19 +8,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['assignment_id'])) {
     exit();
 }
 
-$assignmentId = $_POST['assignment_id'];
+requireCsrf();
+$assignmentId = (int) $_POST['assignment_id'];
 $pupilId = $_SESSION['user_id'];
 $comment = trim($_POST['comment'] ?? '');
 
 $submissionFile = null;
 if (!empty($_FILES['task_file']['tmp_name'])) {
     $uploadDir = __DIR__ . '/../uploads/submissions/';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+    $allowedExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'txt', 'png', 'jpg', 'jpeg'];
+
+    $fileName = saveUploadedFile($_FILES['task_file'], $uploadDir, $allowedExtensions);
+    if ($fileName === false) {
+        die('Nederīgs faila tips. Atļautie formāti: pdf, doc, docx, ppt, pptx, xls, xlsx, zip, txt, png, jpg, jpeg.');
     }
 
-    $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '', $_FILES['task_file']['name']);
-    move_uploaded_file($_FILES['task_file']['tmp_name'], $uploadDir . $fileName);
     $submissionFile = $fileName;
 }
 

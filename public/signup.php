@@ -1,17 +1,20 @@
 <?php
+require '../config/session_check.php';
 require '../config/db.php';
-session_start();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT); // Droša parole
-    $role = $_POST['role']; // teacher vai pupil
+    requireCsrf();
+
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $role = 'pupil';
 
     try {
         $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
         $stmt->execute([$name, $email, $password, $role]);
         header("Location: login.php?registered=1");
+        exit();
     } catch (PDOException $e) {
         $error = "E-pasts jau eksistē!";
     }
@@ -21,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <!DOCTYPE html>
 <html lang="lv">
 <head>
+    <link rel="stylesheet" href="theme-toggle.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Sign Up | EduPulse</title>
 </head>
@@ -36,6 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endif; ?>
 
         <form method="POST" class="space-y-4">
+            <button type="button" id="theme-toggle" class="theme-toggle-btn">🌙 Tumšā</button>
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
             <input type="text" name="name" placeholder="Pilns vārds" required 
                    class="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl focus:outline-none focus:border-purple-500 transition">
             
@@ -44,17 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             <input type="password" name="password" placeholder="Parole" required 
                    class="w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl focus:outline-none focus:border-purple-500 transition">
-
-            <div class="flex gap-4 p-2 bg-slate-800 rounded-2xl border border-slate-700">
-                <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-xl has-[:checked]:bg-purple-600 transition">
-                    <input type="radio" name="role" value="pupil" checked class="hidden">
-                    <span class="text-sm font-bold">Skolēns</span>
-                </label>
-                <label class="flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-xl has-[:checked]:bg-purple-600 transition">
-                    <input type="radio" name="role" value="teacher" class="hidden">
-                    <span class="text-sm font-bold">Skolotājs</span>
-                </label>
-            </div>
 
             <button class="w-full bg-purple-600 hover:bg-purple-500 p-4 rounded-2xl font-black text-lg transition shadow-lg shadow-purple-500/20 mt-4">
                 Reģistrēties
@@ -65,5 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             Jau ir profils? <a href="login.php" class="text-purple-400 font-bold hover:underline">Ielogoties</a>
         </p>
     </div>
+    <script src="theme-toggle.js"></script>
 </body>
 </html>

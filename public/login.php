@@ -1,5 +1,5 @@
 <?php
-session_start();
+require '../config/session_check.php';
 require '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -11,13 +11,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $user['role'];
         $_SESSION['name'] = $user['name'];
 
         // Pārvirzām atkarībā no lomas
-        if($user['role'] == 'admin') header("Location: admin.php");
-        elseif($user['role'] == 'teacher') header("Location: teacher.php");
+        if ($user['role'] == 'admin') header("Location: admin.php");
+        elseif ($user['role'] == 'teacher') header("Location: teacher.php");
         else header("Location: pupil.php");
         exit();
     } else {
@@ -29,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <!DOCTYPE html>
 <html lang="lv">
 <head>
+    <link rel="stylesheet" href="theme-toggle.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Login | EduPulse</title>
 </head>
@@ -37,10 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <h2 class="text-3xl font-bold mb-6 text-center text-purple-400">EduPulse</h2>
         <a href="signup.php" class="text-purple-400 font-bold">Izveidot jaunu profilu</a>
         <form method="POST">
+            <button type="button" id="theme-toggle" class="theme-toggle-btn mb-4">🌙 Tumšā</button>
             <input type="email" name="email" placeholder="E-pasts" class="w-full p-3 mb-4 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-500">
             <input type="password" name="password" placeholder="Parole" class="w-full p-3 mb-6 bg-slate-800 border border-slate-600 rounded-lg focus:outline-none focus:border-purple-500">
             <button class="w-full bg-purple-600 hover:bg-purple-700 p-3 rounded-lg font-bold transition">Ienākt</button>
         </form>
     </div>
+    <script src="theme-toggle.js"></script>
 </body>
 </html>

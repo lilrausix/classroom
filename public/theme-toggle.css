@@ -1,0 +1,47 @@
+html.light {
+    filter: invert(1) hue-rotate(180deg);
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+html.light img,
+html.light svg,
+html.light video {
+    filter: invert(1) hue-rotate(180deg);
+}
+
+html.light * {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+#theme-toggle,
+.theme-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(139, 92, 246, 0.12);
+    color: inherit;
+    padding: 0.75rem 1rem;
+    font-weight: 700;
+    line-height: 1;
+    transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 18px 60px rgba(15, 23, 42, 0.18);
+    cursor: pointer;
+    text-decoration: none;
+    backdrop-filter: blur(12px);
+}
+
+#theme-toggle:hover,
+.theme-toggle-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(139, 92, 246, 0.18);
+    border-color: rgba(139, 92, 246, 0.55);
+}
+
+#theme-toggle:focus,
+.theme-toggle-btn:focus {
+    outline: 2px solid rgba(139, 92, 246, 0.7);
+    outline-offset: 2px;
+}

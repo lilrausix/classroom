@@ -1,10 +1,10 @@
 <?php
-session_start();
 require '../config/session_check.php';
 require '../config/db.php';
 checkRole('admin');
 
 if (isset($_POST['update_role'])) {
+    requireCsrf();
     $userId = $_POST['user_id'];
     $name = trim($_POST['name']);
     $newRole = $_POST['new_role'];
@@ -39,6 +39,7 @@ $logs = $pdo->query("SELECT action_history.*, users.name AS admin_name FROM acti
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="theme-toggle.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Admin Panelis | EduPulse</title>
 </head>
@@ -51,8 +52,10 @@ $logs = $pdo->query("SELECT action_history.*, users.name AS admin_name FROM acti
                     <h1 class="mt-3 text-4xl font-extrabold text-purple-300">Lietotāju pārvaldība</h1>
                     <p class="mt-2 text-slate-400">Pārvaldiet profila datus, lomas un sekojiet darbību vēsturei.</p>
                 </div>
-                <a href="logout.php" class="inline-flex items-center justify-center rounded-full border border-purple-600 bg-purple-600 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-purple-500">Iziet</a>
-            </div>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                    <button id="theme-toggle" type="button" class="theme-toggle-btn">🌙 Tumšā</button>
+                    <a href="logout.php" class="inline-flex items-center justify-center rounded-full border border-purple-600 bg-purple-600 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-purple-500">Iziet</a>
+                </div>
         </header>
 
         <section class="rounded-[40px] border border-slate-700 bg-slate-950/80 p-6 shadow-[0_25px_70px_rgba(15,23,42,0.35)]">
@@ -76,6 +79,7 @@ $logs = $pdo->query("SELECT action_history.*, users.name AS admin_name FROM acti
                                 </td>
                                 <td class="p-4 text-right">
                                     <form method="POST" class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                                         <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                         <input type="text" name="name" value="<?= htmlspecialchars($user['name']) ?>" class="w-full rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:outline-none sm:w-32">
                                         <select name="new_role" class="w-full rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:outline-none sm:w-28">
@@ -123,5 +127,6 @@ $logs = $pdo->query("SELECT action_history.*, users.name AS admin_name FROM acti
             </article>
         </section>
     </div>
+    <script src="theme-toggle.js"></script>
 </body>
 </html>

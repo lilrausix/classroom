@@ -4,11 +4,14 @@ require '../config/db.php';
 checkRole('teacher');
 
 if (isset($_POST['grade'])) {
-    $sub_id = $_POST['sub_id'];
-    $grade = $_POST['grade'];
+    requireCsrf();
+    $sub_id = (int) $_POST['sub_id'];
+    $grade = (int) $_POST['grade'];
 
     $stmt = $pdo->prepare("UPDATE submissions SET grade = ? WHERE id = ?");
     $stmt->execute([$grade, $sub_id]);
 
-    header("Location: " . $_SERVER['HTTP_REFERER']);
+    $redirect = $_SERVER['HTTP_REFERER'] ?? 'grading.php';
+    header("Location: " . $redirect);
+    exit();
 }

@@ -1,5 +1,4 @@
 <?php
-session_start();
 require '../config/session_check.php';
 require '../config/db.php';
 checkRole('pupil');
@@ -20,19 +19,20 @@ $avatar_url = (!empty($avatar_filename) && file_exists($avatar_path))
     : "https://ui-avatars.com/api/?name=" . urlencode($current_user['name']) . "&background=312e81&color=ede9fe&size=256";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['avatar']) && !empty($_FILES['avatar']['tmp_name'])) {
+    requireCsrf();
     $avatarDir = __DIR__ . "/../uploads/avatars/";
-    if (!is_dir($avatarDir)) {
-        mkdir($avatarDir, 0755, true);
+    $allowedExtensions = ['png', 'jpg', 'jpeg', 'gif'];
+
+    $savedName = saveUploadedFile($_FILES['avatar'], $avatarDir, $allowedExtensions);
+    if ($savedName === false) {
+        $uploadError = 'Atļauts tikai attēla formāts: png, jpg, jpeg, gif.';
+    } else {
+        $stmt = $pdo->prepare("UPDATE users SET avatar = ? WHERE id = ?");
+        $stmt->execute([$savedName, $user_id]);
+
+        header("Location: pupil.php?updated=1");
+        exit();
     }
-
-    $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '', $_FILES['avatar']['name']);
-    move_uploaded_file($_FILES['avatar']['tmp_name'], $avatarDir . $file_name);
-
-    $stmt = $pdo->prepare("UPDATE users SET avatar = ? WHERE id = ?");
-    $stmt->execute([$file_name, $user_id]);
-
-    header("Location: pupil.php?updated=1");
-    exit();
 }
 
 $classStmt = $pdo->prepare("SELECT c.*, cm.joined_at FROM classes c
@@ -41,7 +41,7 @@ $classStmt = $pdo->prepare("SELECT c.*, cm.joined_at FROM classes c
 $classStmt->execute([$user_id]);
 $classes = $classStmt->fetchAll();
 
-$assignmentStmt = $pdo->prepare("SELECT a.*, c.name AS class_name,
+$assignmentStmt = $pdo->prepare("SELECT a.*, a.file_path AS assignment_file, c.name AS class_name,
     s.id AS submission_id, s.file_path AS submission_file, s.comment AS submission_comment, s.grade
     FROM assignments a
     JOIN classes c ON c.id = a.class_id
@@ -57,6 +57,7 @@ $assignments = $assignmentStmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="theme-toggle.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Pupil Panel | EduPulse</title>
 </head>
@@ -67,10 +68,13 @@ $assignments = $assignmentStmt->fetchAll();
                 <div class="flex items-center gap-6">
                     <div class="relative">
                         <img src="<?= $avatar_url ?>" alt="Avatar" class="h-28 w-28 rounded-full border-4 border-purple-500 object-cover bg-slate-800">
-                        <form method="POST" enctype="multipart/form-data" class="absolute inset-0 cursor-pointer">
-                            <input type="file" name="avatar" onchange="this.form.submit()" class="h-full w-full opacity-0" accept="image/*">
+                        <form method="POST" enctype="multipart/form-data" class="absolute inset-0 z-10">
+                            <label for="avatar-upload" class="absolute inset-0 cursor-pointer">
+                                <input id="avatar-upload" type="file" name="avatar" onchange="this.form.submit()" class="sr-only" accept="image/*">
+                                <div class="absolute -bottom-1 -right-1 rounded-full bg-purple-500 px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-slate-950 shadow-lg transition hover:bg-purple-400">Edit</div>
+                            </label>
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                         </form>
-                        <div class="absolute -bottom-1 -right-1 rounded-full bg-purple-500 px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-slate-950">Edit</div>
                     </div>
                     <div>
                         <p class="text-sm uppercase tracking-[0.35em] text-slate-500">Audzēknis</p>
@@ -78,8 +82,10 @@ $assignments = $assignmentStmt->fetchAll();
                         <p class="mt-2 text-slate-400">Jūsu profils ir gatavs, lai pievienotos klasei un iesniegtu uzdevumus.</p>
                     </div>
                 </div>
-                <a href="logout.php" class="inline-flex items-center justify-center rounded-full border border-purple-600 bg-purple-600 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-purple-500">Iziet</a>
-            </div>
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+                    <button id="theme-toggle" type="button" class="theme-toggle-btn">🌙 Tumšā</button>
+                    <a href="logout.php" class="inline-flex items-center justify-center rounded-full border border-purple-600 bg-purple-600 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-purple-500">Iziet</a>
+                </div>
         </header>
 
         <?php if ($error): ?>
@@ -90,6 +96,9 @@ $assignments = $assignmentStmt->fetchAll();
         <?php endif; ?>
         <?php if ($submitted): ?>
             <div class="mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-sm text-emerald-200">Uzdevums iesniegts veiksmīgi.</div>
+        <?php endif; ?>
+        <?php if (!empty($uploadError)): ?>
+            <div class="mb-6 rounded-3xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-200"><?= htmlspecialchars($uploadError) ?></div>
         <?php endif; ?>
 
         <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -147,17 +156,23 @@ $assignments = $assignmentStmt->fetchAll();
                                         <div class="rounded-3xl bg-slate-950/80 px-4 py-2 text-sm text-slate-300"><?= date('d.m.Y', strtotime($assignment['created_at'])) ?></div>
                                     </div>
                                     <p class="mt-4 text-slate-400 leading-relaxed"><?= nl2br(htmlspecialchars($assignment['description'])) ?></p>
+                                    <?php if (!empty($assignment['assignment_file'])): ?>
+                                        <div class="mt-4 flex flex-wrap gap-3 text-sm text-slate-300">
+                                            <a href="../uploads/assignments/<?= htmlspecialchars($assignment['assignment_file']) ?>" class="rounded-full bg-indigo-500/15 px-3 py-2 text-indigo-200 hover:bg-indigo-500/25">Lejuplādēt uzdevuma failu</a>
+                                        </div>
+                                    <?php endif; ?>
                                     <?php if ($assignment['submission_id']): ?>
                                         <div class="mt-4 flex flex-wrap gap-3 text-sm text-slate-300">
                                             <span class="rounded-full bg-slate-800 px-3 py-2">Iesniegts</span>
                                             <span class="rounded-full bg-slate-800 px-3 py-2">Vērtējums: <?= $assignment['grade'] ?? 'Nav' ?></span>
                                             <?php if ($assignment['submission_file']): ?>
-                                                <a href="../uploads/submissions/<?= htmlspecialchars($assignment['submission_file']) ?>" class="rounded-full bg-purple-600/15 px-3 py-2 text-purple-200 hover:bg-purple-600/25">Skatīt failu</a>
+                                                <a href="../uploads/submissions/<?= htmlspecialchars($assignment['submission_file']) ?>" class="rounded-full bg-purple-600/15 px-3 py-2 text-purple-200 hover:bg-purple-600/25">Skatīt iesniegto failu</a>
                                             <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
 
                                     <form action="submit_task.php" method="POST" enctype="multipart/form-data" class="mt-6 space-y-4">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                                         <input type="hidden" name="assignment_id" value="<?= $assignment['id'] ?>">
                                         <label class="block text-sm text-slate-400">Komentārs skolotājam</label>
                                         <textarea name="comment" rows="3" placeholder="Raksti komentāru..." class="w-full rounded-3xl border border-slate-700 bg-slate-950/80 p-4 text-slate-100 focus:border-purple-500" required><?= htmlspecialchars($assignment['submission_comment'] ?? '') ?></textarea>
@@ -178,6 +193,7 @@ $assignments = $assignmentStmt->fetchAll();
                     <p class="text-sm uppercase tracking-[0.35em] text-slate-500">Pievienoties klasei</p>
                     <h2 class="mt-3 text-3xl font-bold text-white">Ievadiet kodu</h2>
                     <form action="join_class.php" method="POST" class="mt-6 space-y-4">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                         <input type="text" name="code" maxlength="6" placeholder="85XYQT" class="w-full rounded-3xl border border-slate-700 bg-slate-950/80 px-4 py-4 text-white placeholder:text-slate-500 focus:border-purple-500 focus:outline-none" required>
                         <button type="submit" class="w-full rounded-3xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 font-semibold text-slate-950 transition hover:opacity-90">Pievienoties</button>
                     </form>
@@ -194,5 +210,6 @@ $assignments = $assignmentStmt->fetchAll();
             </aside>
         </section>
     </div>
+    <script src="theme-toggle.js"></script>
 </body>
 </html>

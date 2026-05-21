@@ -1,10 +1,10 @@
 <?php
-session_start();
 require '../config/session_check.php';
 require '../config/db.php';
 checkRole('teacher');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_class'])) {
+    requireCsrf();
     $className = trim($_POST['class_name']);
     $teacherId = $_SESSION['user_id'];
 
@@ -28,6 +28,7 @@ $classes = $classStmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="theme-toggle.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <title>Teacher Panel | EduPulse</title>
 </head>
@@ -40,7 +41,7 @@ $classes = $classStmt->fetchAll();
             </div>
             <nav class="space-y-3 text-slate-300">
                 <a href="teacher.php" class="block rounded-3xl bg-purple-600/10 px-4 py-3 font-semibold text-purple-200">Tavas klases</a>
-                <a href="#classes" class="block rounded-3xl px-4 py-3 hover:bg-slate-900 transition">Vērtēšana</a>
+                <a href="grading.php" class="block rounded-3xl px-4 py-3 hover:bg-slate-900 transition">Vērtēšana</a>
             </nav>
             <div class="mt-10">
                 <a href="logout.php" class="inline-flex w-full items-center justify-center rounded-3xl bg-purple-600 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-purple-500">Iziet</a>
@@ -53,10 +54,14 @@ $classes = $classStmt->fetchAll();
                     <p class="text-sm uppercase tracking-[0.35em] text-slate-500">Skolotāja panelis</p>
                     <h2 class="mt-3 text-4xl font-extrabold text-white">Tavas klases</h2>
                 </div>
-                <form method="POST" class="grid w-full max-w-2xl gap-3 sm:grid-cols-[1fr_auto]">
-                    <input type="text" name="class_name" placeholder="Pievienot jaunu klasi" required class="rounded-3xl border border-slate-700 bg-slate-900/80 px-5 py-3 text-slate-100 focus:outline-none focus:border-purple-500">
-                    <button name="create_class" class="rounded-3xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90">+ Izveidot klasi</button>
-                </form>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button id="theme-toggle" type="button" class="theme-toggle-btn">🌙 Tumšā</button>
+                    <form method="POST" class="grid w-full max-w-2xl gap-3 sm:grid-cols-[1fr_auto]">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
+                        <input type="text" name="class_name" placeholder="Pievienot jaunu klasi" required class="rounded-3xl border border-slate-700 bg-slate-900/80 px-5 py-3 text-slate-100 focus:outline-none focus:border-purple-500">
+                        <button name="create_class" class="rounded-3xl bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-3 font-semibold text-slate-950 transition hover:opacity-90">+ Izveidot klasi</button>
+                    </form>
+                </div>
             </div>
 
             <?php if (count($classes) === 0): ?>
@@ -96,5 +101,6 @@ $classes = $classStmt->fetchAll();
             <?php endif; ?>
         </main>
     </div>
+    <script src="theme-toggle.js"></script>
 </body>
 </html>
