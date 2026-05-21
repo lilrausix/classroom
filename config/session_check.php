@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Funkcija, kas pārbauda vai lietotājs ir ielogojies un vai viņam ir pareizā loma
 function checkRole($allowed_role) {
